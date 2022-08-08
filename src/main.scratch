@@ -1,0 +1,74 @@
+(include "src/linalg.scratch")
+
+(macro POINT-COLOR 0x000000)
+(macro POINT-SIZE 7)
+(macro PROJECTION-SCALE 100)
+(macro INITIAL-CAMERA-POSITION (Vec3 0 0 -1))
+(macro MOVEMENT-SPEED 5)
+(macro TURN-SPEED 250)
+
+(macro cam.pos (Vec3 cam.x cam.y cam.z))
+
+(sprite "Stage"
+  (costumes "backdrop" "assets/blank.png"))
+
+(sprite "main"
+  (costumes "blank" "assets/blank-but-nonzero-sized.svg")
+
+  (variables cam.x cam.y cam.z
+             cam.pitch cam.yaw
+             delta-time)
+
+  (proc (when-flag-clicked)
+    (set-pen-color POINT-COLOR)
+    (set-pen-size POINT-SIZE)
+    (v3-store cam.x cam.y cam.z INITIAL-CAMERA-POSITION)
+    (:= cam.pitch 0)
+    (:= cam.yaw 0)
+    (forever
+      (controls)
+      (render)
+      (:= delta-time timer)
+      (reset-timer)))
+
+  (proc (controls)
+    (:= cam.yaw (mod (+ cam.yaw
+                        (* TURN-SPEED delta-time
+                           (- (pressing-key "h")
+                              (pressing-key "l"))))
+                     360))
+    (+= cam.pitch (* TURN-SPEED delta-time
+                     (- (pressing-key "k")
+                        (pressing-key "j"))))
+    (cond
+      (> cam.pitch  180) (:= cam.pitch  180)
+      (< cam.pitch -180) (:= cam.pitch -180))
+    (v2-store+
+      cam.x cam.z
+      (v2-rotate
+        cam.yaw
+        (v2-scale (* MOVEMENT-SPEED delta-time)
+                  (Vec2 (- (pressing-key "d")
+                           (pressing-key "a"))
+                        (- (pressing-key "w")
+                           (pressing-key "s"))))))
+    (+= cam.y (* MOVEMENT-SPEED delta-time
+                 (- (pressing-key "e")
+                    (pressing-key "q")))))
+
+  (proc (render)
+    (erase-all)
+    (render-point 0 0 0)
+    (render-point 0 0 1)
+    (render-point 0 1 0)
+    (render-point 0 1 1)
+    (render-point 1 0 0)
+    (render-point 1 0 1)
+    (render-point 1 1 0)
+    (render-point 1 1 1))
+
+  (proc (render-point x y z)
+    (v2-use set-xy (view-transform (Vec3 x y z)
+                                   cam.pos cam.pitch cam.yaw PROJECTION-SCALE))
+    (pen-down)
+    (pen-up)))

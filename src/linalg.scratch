@@ -1,0 +1,108 @@
+; Unused for now
+; ; Stores the x and y components of a 2D vector in x-var and y-var respectively.
+; (macro (v2-store x-var y-var (Vec2 x y))
+;        (do
+;          (:= ,x-var ,x)
+;          (:= ,y-var ,y)))
+
+; Adds the x and y components of a 2D vector to x-var and y-var respectively.
+(macro (v2-store+ x-var y-var (Vec2 x y))
+       (do
+         (+= ,x-var ,x)
+         (+= ,y-var ,y)))
+
+; Adds two 2D vectors.
+(macro (v2+ (Vec2 x1 y1) (Vec2 x2 y2))
+       (Vec2 (+ ,x1 ,x2) (+ ,y1 ,y2)))
+
+; Multiplies each component of a 2D vector by a scalar.
+(macro (v2-scale scalar (Vec2 x y))
+       (Vec2 (* ,x ,scalar) (* ,y ,scalar)))
+
+; Multiplies a 2x2 matrix with a 2D vector.
+(macro (m2x2*v2 (Mat2x2 a b
+                        c d)
+                (Vec2 x y))
+       (Vec2 (+ (* ,a ,x) (* ,b ,y))
+             (+ (* ,c ,x) (* ,d ,y))))
+
+; Applies the x and y components of a 2D vector as arguments to the provided
+; function.
+(macro (v2-use fun (Vec2 x y))
+       (,fun ,x ,y))
+
+; Turns a 2x2 matrix into a 3x3 matrix by taking the second row/column from the
+; identity matrix.
+(macro (m2x2-to-m3x3-xiy (Mat2x2 a b
+                                 c d))
+       (Mat3x3 ,a 0 ,b
+                0 1  0
+               ,c 0 ,d))
+
+; Turns a 2x2 matrix into a 3x3 matrix by taking the first row/column from the
+; identity matrix.
+(macro (m2x2-to-m3x3-ixy (Mat2x2 a b
+                                 c d))
+       (Mat3x3 1  0  0
+               0 ,a ,b
+               0 ,c ,d))
+
+; Computes the 2D rotation matrix for a given angle.
+(macro (rotation-matrix-2d angle)
+       (Mat2x2 (cos ,angle) (- (sin ,angle))
+               (sin ,angle)    (cos ,angle)))
+
+; Rotates a 2D vector by a given angle.
+(macro (v2-rotate angle vec)
+       (m2x2*v2 (rotation-matrix-2d ,angle) ,vec))
+
+; Computes the 3D rotation matrix for a specified pitch.
+(macro (rotation-matrix-3d-pitch pitch)
+       (m2x2-to-m3x3-ixy (rotation-matrix-2d ,pitch)))
+
+; Computes the 3D rotation matrix for a specified yaw.
+(macro (rotation-matrix-3d-yaw yaw)
+       (m2x2-to-m3x3-xiy (rotation-matrix-2d ,yaw)))
+
+; Rotates a 3D vector by a given yaw and pitch. This order makes the operation
+; suitable for rotating the world, not the camera.
+(macro (v3-rotate-yaw-pitch yaw pitch vec)
+       (m3x3*v3 (rotation-matrix-3d-pitch ,pitch)
+                (m3x3*v3 (rotation-matrix-3d-yaw ,yaw)
+                         ,vec)))
+
+; Stores the x, y and z components of a 3D vector in x-var, y-var and z-var
+; respectively.
+(macro (v3-store x-var y-var z-var (Vec3 x y z))
+       (do
+         (:= ,x-var ,x)
+         (:= ,y-var ,y)
+         (:= ,z-var ,z)))
+
+; Subtracts two 3D vectors.
+(macro (v3- (Vec3 x1 y1 z1)
+            (Vec3 x2 y2 z2))
+       (Vec3 (- ,x1 ,x2) (- ,y1 ,y2) (- ,z1 ,z2)))
+
+; Multiplies a 3x3 matrix with a 3D vector.
+(macro (m3x3*v3 (Mat3x3 a b c
+                        d e f
+                        g h i)
+                (Vec3 x y z))
+       (Vec3 (+ (* ,a ,x) (* ,b ,y) (* ,c ,z))
+             (+ (* ,d ,x) (* ,e ,y) (* ,f ,z))
+             (+ (* ,g ,x) (* ,h ,y) (* ,i ,z))))
+
+; Converts a 3D vector into a 2D vector through perspective projection.
+(macro (perspective-project (Vec3 x y z))
+       (Vec2 (/ ,x ,z) (/ ,y ,z)))
+
+; Computes the screen coordinates of a given point, taking the camera position
+; and rotation into account.
+(macro (view-transform point camera-position pitch yaw projection-scale)
+       (v2-scale
+         ,projection-scale
+         (perspective-project
+           (v3-rotate-yaw-pitch
+             (- ,yaw) ,pitch
+             (v3- ,point ,camera-position)))))

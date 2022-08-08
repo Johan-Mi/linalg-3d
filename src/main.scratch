@@ -19,7 +19,8 @@
 
   (variables cam.x cam.y cam.z
              cam.pitch cam.yaw
-             delta-time)
+             delta-time
+             proj.x proj.y proj.z)
 
   (proc (when-flag-clicked)
     (v3-store cam.x cam.y cam.z INITIAL-CAMERA-POSITION)
@@ -83,26 +84,22 @@
     (render-point 1 1 0)
     (render-point 1 1 1))
 
-  (proc (render-point x y z)
-    (variables screen-x screen-y depth)
-    (v3-store screen-x screen-y depth
+  (proc (project x y z)
+    (v3-store proj.x proj.y proj.z
               (view-transform (Vec3 x y z)
-                              cam.pos cam.pitch cam.yaw PROJECTION-SCALE))
-    (when (> depth 0)
-      (set-xy screen-x screen-y)
+                              cam.pos cam.pitch cam.yaw PROJECTION-SCALE)))
+
+  (proc (render-point x y z)
+    (project x y z)
+    (when (> proj.z 0)
+      (set-xy proj.x proj.y)
       (pen-down)
       (pen-up)))
 
   (proc (render-line x1 y1 z1 x2 y2 z2)
-    (variables screen-x1 screen-y1 depth-1
-               screen-x2 screen-y2 depth-2)
-    (v3-store screen-x1 screen-y1 depth-1
-              (view-transform (Vec3 x1 y1 z1)
-                              cam.pos cam.pitch cam.yaw PROJECTION-SCALE))
-    (v3-store screen-x2 screen-y2 depth-2
-              (view-transform (Vec3 x2 y2 z2)
-                              cam.pos cam.pitch cam.yaw PROJECTION-SCALE))
-    (set-xy screen-x1 screen-y1)
+    (project x1 y1 z1)
+    (set-xy proj.x proj.y)
     (pen-down)
-    (set-xy screen-x2 screen-y2)
+    (project x2 y2 z2)
+    (set-xy proj.x proj.y)
     (pen-up)))

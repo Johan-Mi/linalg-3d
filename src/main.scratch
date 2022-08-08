@@ -68,7 +68,11 @@
     (render-point 1 1 1))
 
   (proc (render-point x y z)
-    (v2-use set-xy (view-transform (Vec3 x y z)
-                                   cam.pos cam.pitch cam.yaw PROJECTION-SCALE))
-    (pen-down)
-    (pen-up)))
+    (variables screen-x screen-y depth)
+    (v3-store screen-x screen-y depth
+              (view-transform (Vec3 x y z)
+                              cam.pos cam.pitch cam.yaw PROJECTION-SCALE))
+    (when (> depth 0)
+      (set-xy screen-x screen-y)
+      (pen-down)
+      (pen-up))))

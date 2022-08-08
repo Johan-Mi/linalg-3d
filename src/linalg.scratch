@@ -84,6 +84,10 @@
             (Vec3 x2 y2 z2))
        (Vec3 (- ,x1 ,x2) (- ,y1 ,y2) (- ,z1 ,z2)))
 
+; Multiplies each component of a 3D vector by a scalar.
+(macro (v3-scale scalar (Vec3 x y z))
+       (Vec3 (* ,x ,scalar) (* ,y ,scalar) (* ,z ,scalar)))
+
 ; Multiplies a 3x3 matrix with a 3D vector.
 (macro (m3x3*v3 (Mat3x3 a b c
                         d e f
@@ -93,14 +97,15 @@
              (+ (* ,d ,x) (* ,e ,y) (* ,f ,z))
              (+ (* ,g ,x) (* ,h ,y) (* ,i ,z))))
 
-; Converts a 3D vector into a 2D vector through perspective projection.
+; Perspective projects a 3D vector while also passing through its depth.
 (macro (perspective-project (Vec3 x y z))
-       (Vec2 (/ ,x ,z) (/ ,y ,z)))
+       (Vec3 (/ ,x ,z) (/ ,y ,z) ,z))
 
 ; Computes the screen coordinates of a given point, taking the camera position
-; and rotation into account.
+; and rotation into account. The sign of the z component that is returned can
+; be used for near plane clipping.
 (macro (view-transform point camera-position pitch yaw projection-scale)
-       (v2-scale
+       (v3-scale
          ,projection-scale
          (perspective-project
            (v3-rotate-yaw-pitch

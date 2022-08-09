@@ -42,8 +42,8 @@
                      (- (pressing-key "k")
                         (pressing-key "j"))))
     (cond
-      (> cam.pitch  180) (:= cam.pitch  180)
-      (< cam.pitch -180) (:= cam.pitch -180))
+      (> cam.pitch  90) (:= cam.pitch  90)
+      (< cam.pitch -90) (:= cam.pitch -90))
     (v2-store+
       cam.x cam.z
       (v2-rotate

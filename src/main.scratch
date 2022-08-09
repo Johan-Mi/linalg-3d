@@ -5,7 +5,6 @@
 (macro LINE-COLOR 0x000000)
 (macro POINT-SIZE 7)
 (macro LINE-SIZE 3)
-(macro PROJECTION-SCALE 100)
 (macro INITIAL-CAMERA-POSITION (Vec3 0 0 -1))
 (macro MOVEMENT-SPEED 5)
 (macro TURN-SPEED 250)
@@ -23,6 +22,7 @@
              cam.pitch cam.yaw
              delta-time
              half-screen-width half-screen-height
+             projection-scale
              proj.x proj.y proj.z)
 
   (proc (when-flag-clicked)
@@ -32,6 +32,7 @@
     (set-xy "Infinity" "Infinity")
     (:= half-screen-width x-pos)
     (:= half-screen-height y-pos)
+    (:= projection-scale (* half-screen-height 0.8))
     (forever
       (controls)
       (render)
@@ -98,8 +99,8 @@
   (proc (render-point x y z)
     (project x y z)
     (when (> proj.z NEAR-PLANE)
-      (*= proj.x (/ PROJECTION-SCALE proj.z))
-      (*= proj.y (/ PROJECTION-SCALE proj.z))
+      (*= proj.x (/ projection-scale proj.z))
+      (*= proj.y (/ projection-scale proj.z))
       (set-xy proj.x proj.y)
       (pen-down)
       (pen-up)))
@@ -137,10 +138,10 @@
 
   (proc (render-line-xyclip x1 y1 z1 x2 y2 z2)
     (variables screen-x1 screen-y1 screen-x2 screen-y2)
-    (:= screen-x1 (* x1 (/ PROJECTION-SCALE z1)))
-    (:= screen-y1 (* y1 (/ PROJECTION-SCALE z1)))
-    (:= screen-x2 (* x2 (/ PROJECTION-SCALE z2)))
-    (:= screen-y2 (* y2 (/ PROJECTION-SCALE z2)))
+    (:= screen-x1 (* x1 (/ projection-scale z1)))
+    (:= screen-y1 (* y1 (/ projection-scale z1)))
+    (:= screen-x2 (* x2 (/ projection-scale z2)))
+    (:= screen-y2 (* y2 (/ projection-scale z2)))
     (when (or (and (> screen-x1 half-screen-width)
                    (> screen-x2 half-screen-width))
               (and (< screen-x1 (- half-screen-width))

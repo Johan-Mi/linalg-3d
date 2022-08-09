@@ -1,9 +1,8 @@
-; Unused for now
-; ; Stores the x and y components of a 2D vector in x-var and y-var respectively.
-; (macro (v2-store x-var y-var (Vec2 x y))
-;        (do
-;          (:= ,x-var ,x)
-;          (:= ,y-var ,y)))
+; Stores the x and y components of a 2D vector in x-var and y-var respectively.
+(macro (v2-store x-var y-var (Vec2 x y))
+       (do
+         (:= ,x-var ,x)
+         (:= ,y-var ,y)))
 
 ; Adds the x and y components of a 2D vector to x-var and y-var respectively.
 (macro (v2-store+ x-var y-var (Vec2 x y))
@@ -14,6 +13,10 @@
 ; Adds two 2D vectors.
 (macro (v2+ (Vec2 x1 y1) (Vec2 x2 y2))
        (Vec2 (+ ,x1 ,x2) (+ ,y1 ,y2)))
+
+; Subtracts two 2D vectors.
+(macro (v2- (Vec2 x1 y1) (Vec2 x2 y2))
+       (Vec2 (- ,x1 ,x2) (- ,y1 ,y2)))
 
 ; Multiplies each component of a 2D vector by a scalar.
 (macro (v2-scale scalar (Vec2 x y))
@@ -71,6 +74,10 @@
                 (m3x3*v3 (rotation-matrix-3d-yaw ,yaw)
                          ,vec)))
 
+; Gets the z component of a 3D vector.
+(macro (v3.z (Vec3 x y z))
+       ,z)
+
 ; Stores the x, y and z components of a 3D vector in x-var, y-var and z-var
 ; respectively.
 (macro (v3-store x-var y-var z-var (Vec3 x y z))
@@ -78,6 +85,11 @@
          (:= ,x-var ,x)
          (:= ,y-var ,y)
          (:= ,z-var ,z)))
+
+; Adds two 3D vectors.
+(macro (v3+ (Vec3 x1 y1 z1)
+            (Vec3 x2 y2 z2))
+       (Vec3 (+ ,x1 ,x2) (+ ,y1 ,y2) (+ ,z1 ,z2)))
 
 ; Subtracts two 3D vectors.
 (macro (v3- (Vec3 x1 y1 z1)
@@ -97,17 +109,29 @@
              (+ (* ,d ,x) (* ,e ,y) (* ,f ,z))
              (+ (* ,g ,x) (* ,h ,y) (* ,i ,z))))
 
-; Perspective projects a 3D vector while also passing through its depth.
-(macro (perspective-project (Vec3 x y z))
-       (Vec3 (/ ,x ,z) (/ ,y ,z) ,z))
+; Computes the coordinates of a given point relative to the camera.
+(macro (view-transform point camera-position pitch yaw)
+       (v3-rotate-yaw-pitch
+         (- ,yaw) ,pitch
+         (v3- ,point ,camera-position)))
 
-; Computes the screen coordinates of a given point, taking the camera position
-; and rotation into account. The sign of the z component that is returned can
-; be used for near plane clipping.
-(macro (view-transform point camera-position pitch yaw projection-scale)
-       (v3-scale
-         ,projection-scale
-         (perspective-project
-           (v3-rotate-yaw-pitch
-             (- ,yaw) ,pitch
-             (v3- ,point ,camera-position)))))
+; Determines the x and y coordinates where a 3D line crosses the specified
+; z value.
+(macro (v3-zclip (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) clip-depth)
+       (v2+ (Vec2 ,x1 ,y1)
+            (v2-scale
+              (/ (- ,clip-depth ,z1)
+                 (- ,z2 ,z1))
+              (v2- (Vec2 ,x2 ,y2) (Vec2 ,x1 ,y1)))))
+
+; Determines the y coordinate where a 2D line crosses the specified x value.
+(macro (v2-xclip (Vec2 x1 y1) (Vec2 x2 y2) clip-depth)
+       (+ ,y1 (* (- ,y2 ,y1)
+                 (/ (- ,clip-depth ,x1)
+                    (- ,x2 ,x1)))))
+
+; Determines the x coordinate where a 2D line crosses the specified y value.
+(macro (v2-yclip (Vec2 x1 y1) (Vec2 x2 y2) clip-depth)
+       (+ ,x1 (* (- ,x2 ,x1)
+                 (/ (- ,clip-depth ,y1)
+                    (- ,y2 ,y1)))))

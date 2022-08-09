@@ -1,3 +1,4 @@
+(include "src/basic-macros.scratch")
 (include "src/linalg.scratch")
 
 (macro POINT-COLOR 0xaa0000)
@@ -8,6 +9,7 @@
 (macro INITIAL-CAMERA-POSITION (Vec3 0 0 -1))
 (macro MOVEMENT-SPEED 5)
 (macro TURN-SPEED 250)
+(macro NEAR-PLANE 0.01)
 
 (macro cam.pos (Vec3 cam.x cam.y cam.z))
 
@@ -20,12 +22,16 @@
   (variables cam.x cam.y cam.z
              cam.pitch cam.yaw
              delta-time
+             half-screen-width half-screen-height
              proj.x proj.y proj.z)
 
   (proc (when-flag-clicked)
     (v3-store cam.x cam.y cam.z INITIAL-CAMERA-POSITION)
     (:= cam.pitch 0)
     (:= cam.yaw 0)
+    (set-xy "Infinity" "Infinity")
+    (:= half-screen-width x-pos)
+    (:= half-screen-height y-pos)
     (forever
       (controls)
       (render)
@@ -87,19 +93,116 @@
   (proc (project x y z)
     (v3-store proj.x proj.y proj.z
               (view-transform (Vec3 x y z)
-                              cam.pos cam.pitch cam.yaw PROJECTION-SCALE)))
+                              cam.pos cam.pitch cam.yaw)))
 
   (proc (render-point x y z)
     (project x y z)
-    (when (> proj.z 0)
+    (when (> proj.z NEAR-PLANE)
+      (*= proj.x (/ PROJECTION-SCALE proj.z))
+      (*= proj.y (/ PROJECTION-SCALE proj.z))
       (set-xy proj.x proj.y)
       (pen-down)
       (pen-up)))
 
   (proc (render-line x1 y1 z1 x2 y2 z2)
+    (variables proj-x1 proj-y1 proj-z1
+               proj-x2 proj-y2 proj-z2
+               clip-x clip-y
+               clip-pattern)
     (project x1 y1 z1)
-    (set-xy proj.x proj.y)
-    (pen-down)
+    (v3-store proj-x1 proj-y1 proj-z1
+              (Vec3 proj.x proj.y proj.z))
     (project x2 y2 z2)
-    (set-xy proj.x proj.y)
+    (v3-store proj-x2 proj-y2 proj-z2
+              (Vec3 proj.x proj.y proj.z))
+    (:= clip-pattern (+ (* 0b10 (> proj-z1 NEAR-PLANE))
+                        (* 0b01 (> proj-z2 NEAR-PLANE))))
+    (cond
+      (= clip-pattern 0b11)
+      (then ; Both points are in front of near clip plane
+        (render-line-xyclip proj-x1 proj-y1 proj-z1
+                            proj-x2 proj-y2 proj-z2))
+      (> clip-pattern 0b00)
+      (then ; Exactly one point is in front of near clip plane
+        (v2-store clip-x clip-y
+                  (v3-zclip (Vec3 proj-x1 proj-y1 proj-z1)
+                            (Vec3 proj-x2 proj-y2 proj-z2) NEAR-PLANE))
+        (if (= clip-pattern 0b10)
+          (then ; That being the first
+            (render-line-xyclip proj-x1 proj-y1 proj-z1
+                                clip-x clip-y NEAR-PLANE))
+          (else ; That being the second
+            (render-line-xyclip clip-x clip-y NEAR-PLANE
+                                proj-x2 proj-y2 proj-z2))))))
+
+  (proc (render-line-xyclip x1 y1 z1 x2 y2 z2)
+    (variables screen-x1 screen-y1 screen-x2 screen-y2)
+    (:= screen-x1 (* x1 (/ PROJECTION-SCALE z1)))
+    (:= screen-y1 (* y1 (/ PROJECTION-SCALE z1)))
+    (:= screen-x2 (* x2 (/ PROJECTION-SCALE z2)))
+    (:= screen-y2 (* y2 (/ PROJECTION-SCALE z2)))
+    (when (or (and (> screen-x1 half-screen-width)
+                   (> screen-x2 half-screen-width))
+              (and (< screen-x1 (- half-screen-width))
+                   (< screen-x2 (- half-screen-width)))
+              (and (> screen-y1 half-screen-height)
+                   (> screen-y2 half-screen-height))
+              (and (< screen-y1 (- half-screen-height))
+                   (< screen-y2 (- half-screen-height))))
+      (stop-this-script)) ; Entire line is off-screen
+    (cond
+      (< screen-x1 (- half-screen-width))
+      (then ; First point left clip
+        (:= screen-y1 (v2-xclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                (- half-screen-width)))
+        (:= screen-x1 (- half-screen-width)))
+      (> screen-x1 half-screen-width)
+      (then ; First point right clip
+        (:= screen-y1 (v2-xclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                half-screen-width))
+        (:= screen-x1 half-screen-width)))
+    (cond
+      (< screen-x2 (- half-screen-width))
+      (then ; Second point left clip
+        (:= screen-y2 (v2-xclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                (- half-screen-width)))
+        (:= screen-x2 (- half-screen-width)))
+      (> screen-x2 half-screen-width)
+      (then ; Second point right clip
+        (:= screen-y2 (v2-xclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                half-screen-width))
+        (:= screen-x2 half-screen-width)))
+    (cond
+      (< screen-y1 (- half-screen-height))
+      (then ; First point bottom clip
+        (:= screen-x1 (v2-yclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                (- half-screen-height)))
+        (:= screen-y1 (- half-screen-height)))
+      (> screen-y1 half-screen-height)
+      (then ; First point top clip
+        (:= screen-x1 (v2-yclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                half-screen-height))
+        (:= screen-y1 half-screen-height)))
+    (cond
+      (< screen-y2 (- half-screen-height))
+      (then ; Second point bottom clip
+        (:= screen-x2 (v2-yclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                (- half-screen-height)))
+        (:= screen-y2 (- half-screen-height)))
+      (> screen-y2 half-screen-height)
+      (then ; Second point top clip
+        (:= screen-x2 (v2-yclip (Vec2 screen-x1 screen-y1)
+                                (Vec2 screen-x2 screen-y2)
+                                half-screen-height))
+        (:= screen-y2 half-screen-height)))
+    (set-xy screen-x1 screen-y1)
+    (pen-down)
+    (set-xy screen-x2 screen-y2)
     (pen-up)))

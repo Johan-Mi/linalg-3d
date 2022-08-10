@@ -1,5 +1,2 @@
 (macro then do)
 (macro else do)
-
-(macro (-= var amount)
-       (+= ,var (- ,amount)))

@@ -3,5 +3,3 @@
 
 (macro (-= var amount)
        (+= ,var (- ,amount)))
-(macro (*= var factor)
-       (:= ,var (* ,var ,factor)))

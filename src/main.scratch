@@ -99,9 +99,8 @@
   (proc (render-point x y z)
     (project x y z)
     (when (> proj.z NEAR-PLANE)
-      (*= proj.x (/ projection-scale proj.z))
-      (*= proj.y (/ projection-scale proj.z))
-      (set-xy proj.x proj.y)
+      (set-xy (* proj.x (/ projection-scale proj.z))
+              (* proj.y (/ projection-scale proj.z)))
       (pen-down)
       (pen-up)))
 

@@ -53,13 +53,13 @@
       (< cam.pitch -90) (:= cam.pitch -90))
     (v2-store+
       cam.x cam.z
-      (v2-rotate
-        cam.yaw
-        (v2-scale (* MOVEMENT-SPEED delta-time)
-                  (Vec2 (- (pressing-key "d")
-                           (pressing-key "a"))
-                        (- (pressing-key "w")
-                           (pressing-key "s"))))))
+      (v2-scale
+        (* MOVEMENT-SPEED delta-time)
+        (v2-rotate cam.yaw
+                   (Vec2 (- (pressing-key "d")
+                            (pressing-key "a"))
+                         (- (pressing-key "w")
+                            (pressing-key "s"))))))
     (+= cam.y (* MOVEMENT-SPEED delta-time
                  (- (pressing-key "e")
                     (pressing-key "q")))))

@@ -1,0 +1,3 @@
+[submodule "include/linspalg"]
+	path = include/linspalg
+	url = https://github.com/Johan-Mi/linspalg

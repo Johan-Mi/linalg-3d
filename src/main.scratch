@@ -1,5 +1,9 @@
 (include "src/basic-macros.scratch")
-(include "src/linalg.scratch")
+(include "include/linspalg/src/linspalg.scratch")
+(include "include/linspalg/src/rotation.scratch")
+(include "include/linspalg/src/matrix.scratch")
+(include "include/linspalg/src/view.scratch")
+(include "include/linspalg/src/clipping.scratch")
 
 (macro POINT-COLOR 0xaa0000)
 (macro LINE-COLOR 0x000000)
